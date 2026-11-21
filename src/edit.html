@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit a post · Micropub</title>
+  <link rel="stylesheet" href="edit.css">
+  <script src="edit.js" defer></script>
+</head>
+<body>
+  <main>
+    <header><div><p class="eyebrow">MICROPUB</p><h1>Edit a post</h1></div><span id="identity"></span></header>
+    <p id="session-note">Checking your connection…</p>
+    <div id="notice" role="status" aria-live="polite" hidden></div>
+    <fieldset id="controls" disabled>
+      <form id="load-form">
+        <label for="url">Post URL</label>
+        <div class="load-row"><input id="url" type="url" required placeholder="https://example.com/post"><button type="submit">Load post</button></div>
+      </form>
+      <section id="editor" hidden>
+        <p class="hint">Only fields you change will be replaced. Other post properties are left untouched.</p>
+        <form id="edit-form">
+          <label for="title">Title</label><input id="title" type="text">
+          <label for="content">Content</label><textarea id="content" rows="12"></textarea><p id="content-hint" class="hint"></p>
+          <label for="category">Categories</label><textarea id="category" rows="3"></textarea><p class="hint">One category per line.</p>
+          <button type="submit">Save changes</button>
+        </form>
+      </section>
+      <section class="danger"><h2>Post actions</h2><p>Use the post URL above. These actions require confirmation.</p><div class="actions"><button id="delete" type="button" class="danger-button">Delete post</button><button id="undelete" type="button" class="secondary">Undelete post</button></div></section>
+    </fieldset>
+  </main>
+</body>
+</html>

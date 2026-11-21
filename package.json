@@ -1,0 +1,11 @@
+{
+  "name": "ek-micropub-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A cross-browser Micropub extension",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" }
+}

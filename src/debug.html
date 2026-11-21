@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Micropub diagnostics</title><link rel="stylesheet" href="debug.css"><script src="debug.js" defer></script></head>
+<body><main>
+  <h1>Micropub diagnostics</h1>
+  <p class="warning">URLs and configuration may contain sensitive information. Review them before sharing this page or a screenshot.</p>
+  <section><h2>Client setup</h2>
+    <p>Register this redirect URL with your public HTTPS IndieAuth client ID before signing in.</p>
+    <dl><dt>Redirect URL</dt><dd id="redirect">Loading…</dd></dl>
+    <form id="client-form"><label for="client-id">Client ID URL</label><div class="form-row"><input id="client-id" type="url" required placeholder="https://example.com/client"><button type="submit">Save client ID</button></div></form>
+    <p id="notice" role="status"></p>
+  </section>
+  <section><h2>Signed-in site</h2><p id="session-status">Loading…</p>
+    <dl id="session" hidden>
+      <dt>Identity</dt><dd id="me"></dd>
+      <dt>Authorization endpoint</dt><dd id="authorizationEndpoint"></dd>
+      <dt>Token endpoint</dt><dd id="tokenEndpoint"></dd>
+      <dt>IndieAuth metadata endpoint</dt><dd id="indieauthMetadata"></dd>
+      <dt>Micropub endpoint</dt><dd id="micropub"></dd>
+      <dt>Granted scopes</dt><dd id="scope"></dd>
+    </dl>
+    <div id="config-section" hidden><h3>Micropub q=config</h3><p>Known secret fields and the access token are redacted.</p><pre id="config">Loading…</pre><button type="button" id="refresh">Refresh configuration</button></div>
+  </section>
+</main></body></html>

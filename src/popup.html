@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Micropub</title>
+  <link rel="stylesheet" href="popup.css">
+  <script src="popup.js" defer></script>
+</head>
+<body>
+  <main class="app">
+    <header class="header"><div class="brand"><span class="mark" aria-hidden="true">✳</span><strong>Micropub</strong></div><nav class="header-actions"><a class="text-button" href="edit.html" target="_blank">Edit post</a><a class="text-button" href="debug.html" target="_blank">Diagnostics</a><button id="logout" class="text-button" type="button" hidden>Sign out</button></nav></header>
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <button id="grant-host" class="small-button" type="button" hidden>Allow site access</button>
+    <section id="loading" class="loading">Connecting…</section>
+    <section id="login-view" hidden>
+      <form id="login-form" class="login-form">
+        <label for="me">Your website</label>
+        <input id="me" type="url" placeholder="https://example.com" autocomplete="url" required>
+        <p class="hint" id="setup-note" hidden>Client setup required. Open Diagnostics to configure it.</p>
+        <button class="primary wide connect" type="submit">Connect with IndieAuth <span aria-hidden="true">↗</span></button>
+      </form>
+    </section>
+    <section id="compose-view" hidden>
+      <div class="compose-heading"><span id="identity" class="identity"></span></div>
+      <div class="draft-controls"><label for="draft-select">Local draft</label><select id="draft-select"></select><button id="new-draft" type="button">New</button><button id="clear-draft" type="button">Clear</button><button id="popout" type="button">Pop out</button></div><div id="capture-prompt" hidden>Page capture available. <button id="apply-capture" type="button">Apply capture</button></div><form id="compose-form">
+        <label for="kind">Post type</label><select id="kind"><option value="note">Note</option><option value="article">Article</option><option value="bookmark">Bookmark</option><option value="reply">Reply</option><option value="like">Like</option><option value="repost">Repost</option></select>
+        <div id="title-field" class="field" hidden><label for="title">Title</label><input id="title" placeholder="Give your post a title"></div>
+        <div id="target-field" class="field" hidden><label id="target-label" for="target">URL</label><div class="input-action"><input id="target" type="url" placeholder="https://"><button id="use-page" class="small-button" type="button">Use page</button></div></div>
+        <div class="field"><div class="label-row"><label for="content">Your words</label><button id="use-selection" class="text-button" type="button">Use selection</button></div><div class="toolbar" aria-label="Markdown formatting"><button type="button" data-wrap="**">Bold</button><button type="button" data-wrap="*">Italic</button><button type="button" data-wrap="`">Code</button><button type="button" id="preview-toggle">Preview</button></div><textarea id="content" rows="5" placeholder="What's on your mind?"></textarea><div id="preview" class="preview" hidden></div></div>
+        <div class="field"><label for="categories">Categories <span class="optional">optional</span></label><input id="categories" list="category-options" placeholder="e.g. ideas, reading"><datalist id="category-options"></datalist><p class="hint">Separate categories with commas.</p></div>
+        <details class="options"><summary>Publishing options <span>⌄</span></summary><div class="options-body"><label for="status">Post status</label><select id="status"><option value="">Server default</option><option value="published">Published</option><option value="draft">Draft</option></select><div id="destination-field" class="field" hidden><label for="destination">Destination</label><select id="destination"><option value="">Server default</option></select></div><div id="syndication-field" class="field" hidden><label>Syndicate to</label><div id="syndication" class="checks"></div><p class="hint">Leave unchecked to use the server's default.</p></div></div></details>
+        <div id="upload-field" class="upload field" hidden><label for="file">Add a photo</label><div class="upload-row"><input id="file" type="file" accept="image/*"><button id="upload" class="small-button" type="button">Upload</button></div><div id="upload-progress" role="status" aria-live="polite"></div><div id="photos" class="photos"></div><p class="hint">Uploaded photos will be included in this post.</p></div>
+        <div class="footer"><span id="draft-hint" class="draft-hint">Draft saved on this device</span><button id="publish" class="primary" type="submit">Publish <span aria-hidden="true">↗</span></button></div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
