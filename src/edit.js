@@ -22,13 +22,14 @@ function notice(text, error = false) {
   const element = $('notice'); element.hidden = false;
   element.classList.toggle('error', error); element.textContent = text;
 }
-function url() {
-  const value = $('url').value.trim();
+function validateUrl(input) {
+  const value = input.trim();
   let parsed;
   try { parsed = new URL(value); } catch (_) { throw new Error('Enter a valid post URL.'); }
   if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Enter an HTTP or HTTPS post URL.');
   return value;
 }
+function url() { return validateUrl($('url').value); }
 function dirty() { return ['title', 'content', 'category'].some(id => !$(id).disabled && $(id).value !== baseline[id]); }
 function render(source, postUrl) {
   if (!source || typeof source !== 'object' || !source.properties || typeof source.properties !== 'object' || Array.isArray(source.properties)) throw new Error('The server returned an invalid source response.');
@@ -98,5 +99,14 @@ for (const action of ['delete', 'undelete']) $(action).addEventListener('click',
     const session = response.session || response;
     if (!(session.me || session.authenticated || session.loggedIn)) throw new Error('Sign in from the extension popup first.');
     $('identity').textContent = session.me || 'Connected'; $('session-note').hidden = true; $('controls').disabled = false;
-  } catch (error) { $('session-note').textContent = 'Sign in from the extension popup to edit posts.'; notice(error.message, true); }
+  } catch (error) { $('session-note').textContent = 'Sign in from the extension popup to edit posts.'; notice(error.message, true); return; }
+  const params = new URLSearchParams(location.search);
+  if (params.has('url')) {
+    await busy(async () => {
+      const postUrl = validateUrl(params.get('url'));
+      $('url').value = postUrl;
+      const result = await message({type:'source', url:postUrl});
+      render(result.source, postUrl); notice('Post loaded.');
+    });
+  }
 })();

@@ -58,12 +58,35 @@
       const [, , , kind, source] = definition;
       const target = safeUrl(source === 'link' ? info.linkUrl : source === 'image' ? info.srcUrl : info.pageUrl);
       if (!target) return;
-      const pendingCapture = {kind, target, content:source === 'selection' && typeof info.selectionText === 'string' ? info.selectionText : '', title:typeof tab?.title === 'string' ? tab.title : ''};
-      const existing = await call(api.storage.local, 'get', 'pendingCapture');
+      const pendingCapture = {kind, target, content:source === 'selection' && typeof info.selectionText === 'string' ? info.selectionText.split(/\r?\n/).map(line => `> ${line}`).join('\n') : '', title:kind === 'bookmark' && source !== 'page' ? '' : (typeof tab?.title === 'string' ? tab.title : '')};
+      const existing = await call(api.storage.local, 'get', ['pendingCapture', 'stagedCapture']);
       // Never silently replace a capture the composer has not consumed.
-      if (existing?.pendingCapture) {
+      if (existing?.pendingCapture || existing?.stagedCapture) {
         await call(api.tabs, 'create', {url:api.runtime.getURL('src/popup.html?capture=1&captureConflict=1')});
         return;
+      }
+      if (kind === 'bookmark' && source === 'page' && Number.isInteger(tab?.id) && api.scripting?.executeScript) {
+        try {
+          const results = await call(api.scripting, 'executeScript', {
+            target:{tabId:tab.id},
+            func:() => {
+              const description = document.querySelector('meta[name="description" i]')?.getAttribute('content')?.trim() ||
+                document.querySelector('meta[property="og:description" i]')?.getAttribute('content')?.trim() || '';
+              return {url:location.href, title:document.title, description};
+            }
+          });
+          const metadata = results?.[0]?.result;
+          if (metadata?.url === target) {
+            if (typeof metadata.title === 'string' && metadata.title) pendingCapture.title = metadata.title;
+            if (typeof metadata.description === 'string' && metadata.description) pendingCapture.description = metadata.description;
+          }
+        } catch (_) {} // Restricted pages and missing permissions still produce a usable capture.
+        // Another composer may stage a capture while the script is running.
+        const latest = await call(api.storage.local, 'get', ['pendingCapture', 'stagedCapture']);
+        if (latest?.pendingCapture || latest?.stagedCapture) {
+          await call(api.tabs, 'create', {url:api.runtime.getURL('src/popup.html?capture=1&captureConflict=1')});
+          return;
+        }
       }
       await call(api.storage.local, 'set', {pendingCapture});
       await call(api.tabs, 'create', {url:api.runtime.getURL('src/popup.html?capture=1')});

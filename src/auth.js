@@ -71,6 +71,7 @@
       const metadataResponse = await fetch(links['indieauth-metadata'], {redirect:'error', credentials:'omit', referrerPolicy:'no-referrer'});
       if (!metadataResponse.ok) throw new Error('Identity discovery failed');
       const metadata = await metadataResponse.json();
+      if (metadata.issuer) links.issuer = secure(metadata.issuer);
       if (metadata.authorization_endpoint) links.authorization_endpoint = secure(metadata.authorization_endpoint, links['indieauth-metadata']);
       if (metadata.token_endpoint) links.token_endpoint = secure(metadata.token_endpoint, links['indieauth-metadata']);
       if (Array.isArray(metadata.code_challenge_methods_supported) && !metadata.code_challenge_methods_supported.includes('S256')) throw new Error('Identity server does not support PKCE S256');
@@ -95,6 +96,7 @@
     if (!returned) throw new Error('Authorization was cancelled');
     const callback = new URL(returned), expected = new URL(redirect);
     if (callback.origin !== expected.origin || callback.pathname !== expected.pathname || callback.hash || callback.searchParams.getAll('state').length !== 1 || callback.searchParams.get('state') !== state) throw new Error('Invalid authorization callback');
+    if (discovered.issuer && (callback.searchParams.getAll('iss').length !== 1 || callback.searchParams.get('iss') !== discovered.issuer)) throw new Error('Invalid authorization callback issuer');
     if (callback.searchParams.has('error')) throw new Error('Authorization denied');
     if (callback.searchParams.getAll('code').length !== 1 || !callback.searchParams.get('code')) throw new Error('Authorization code missing');
     const response = await fetch(discovered.token_endpoint, {method:'POST', redirect:'error', credentials:'omit', referrerPolicy:'no-referrer', headers:{'Content-Type':'application/x-www-form-urlencoded', 'Accept':'application/json'}, body:new URLSearchParams({grant_type:'authorization_code', code:callback.searchParams.get('code'), client_id:client, redirect_uri:redirect, code_verifier:verifier})});

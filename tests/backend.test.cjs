@@ -95,7 +95,7 @@ test('source, categories and mutation requests', async()=>{
   assert.equal((await env.send({type:'source',url:'https://me.example/post?a=1&b=2'})).source.properties.content[0],'old');
   assert.equal(new URL(calls[1].url).searchParams.get('url'),'https://me.example/post?a=1&b=2');
   for (const type of ['update','delete','undelete']) {
-    assert.equal((await env.send({type,url:'https://me.example/post',properties:{content:['new']}})).status,204);
+    assert.equal((await env.send({type,url:'https://me.example/post',replace:{content:['new']}})).status,204);
     const body=JSON.parse(calls.at(-1).options.body);
     assert.equal(body.action,type); assert.equal(body.url,'https://me.example/post');
     if(type==='update') assert.deepEqual(body.replace,{content:['new']}); else assert.equal('replace' in body,false);
