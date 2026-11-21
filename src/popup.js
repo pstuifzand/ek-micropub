@@ -4,7 +4,7 @@
 const api = globalThis.browser || globalThis.chrome;
 const $ = id => document.getElementById(id);
 const draftKey = 'micropubPopupDraft';
-const fields = ['kind', 'title', 'target', 'content', 'categories', 'status', 'visibility', 'description'];
+const fields = ['kind', 'title', 'target', 'content', 'categories', 'status', 'visibility', 'description', 'note', 'source-title', 'source-author'];
 let photos = [];
 let currentPage = '';
 let saving = Promise.resolve();
@@ -44,12 +44,19 @@ function notice(text, error = false, url = '') {
 function show(view) { for (const id of ['loading', 'login-view', 'compose-view']) $(id).hidden = id !== view; $('logout').hidden = view !== 'compose-view'; $('edit-current').hidden = view !== 'compose-view'; }
 function updateKind() {
   const kind = $('kind').value;
+  const highlight = kind === 'highlight';
   $('title-field').hidden = kind !== 'article' && kind !== 'bookmark';
   $('title-label').textContent = kind === 'bookmark' ? 'Name' : 'Title';
   $('description-field').hidden = kind !== 'bookmark';
-  $('target-field').hidden = !['bookmark', 'reply', 'like', 'repost'].includes(kind);
-  $('target-label').textContent = ({bookmark:'Bookmark URL',reply:'Reply to',like:'Like URL',repost:'Repost URL'})[kind] || 'URL';
+  $('target-field').hidden = !['bookmark', 'reply', 'like', 'repost', 'highlight'].includes(kind);
+  $('target-label').textContent = ({bookmark:'Bookmark URL',reply:'Reply to',like:'Like URL',repost:'Repost URL',highlight:'Source URL'})[kind] || 'URL';
   $('target').required = !$('target-field').hidden;
+  // A highlight keeps the passage and the note apart: the passage is the post,
+  // the note is what the reader wrote beside it.
+  $('source-field').hidden = !highlight;
+  $('note-field').hidden = !highlight;
+  $('content-label').textContent = highlight ? 'Passage' : 'Your words';
+  $('content').placeholder = highlight ? 'Text you selected' : "What's on your mind?";
 }
 function selectedDestinations(saved) { return Array.isArray(saved) ? saved : typeof saved === 'string' && saved ? [saved] : []; }
 function draft() { return {...Object.fromEntries(fields.map(id => [id, $(id).value])), photos, destination: [...document.querySelectorAll('#destination input:checked')].map(x => x.value), syndication: [...document.querySelectorAll('#syndication input:checked')].map(x => x.value)}; }
@@ -99,7 +106,7 @@ function configure(result, saved) {
   const targets = choices(config['syndicate-to'] || config.syndication || config.syndicateTo);
   const types = choices(config['post-types'] || config.postTypes);
   if (types.length) {
-    const supported = new Set(['note','article','bookmark','reply','like','repost']);
+    const supported = new Set(['note','article','bookmark','reply','like','repost','highlight']);
     const available = types.filter(x => supported.has(x.uid));
     if (available.length) { $('kind').replaceChildren(); for (const item of available) { const option = document.createElement('option'); option.value = item.uid; option.textContent = item.name; $('kind').append(option); } if (saved?.kind && available.some(x => x.uid === saved.kind)) $('kind').value = saved.kind; updateKind(); }
   }
@@ -286,6 +293,10 @@ function applyCapture(ask = true) {
     if (!$('title').value.trim() && c.title) $('title').value = c.title;
     if (!$('description').value.trim() && c.description) $('description').value = c.description;
   }
+  if (kind === 'highlight') {
+    if (!$('source-title').value.trim() && typeof c.title === 'string' && c.title) $('source-title').value = c.title;
+    if (!$('source-author').value.trim() && typeof c.author === 'string' && c.author) $('source-author').value = c.author;
+  }
   pendingCapture = null; call(api.storage.local, 'remove', 'stagedCapture').catch(() => {}); $('capture-prompt').hidden = true; updateKind(); saveDraft();
 }
 $('apply-capture').addEventListener('click', () => applyCapture());
@@ -312,6 +323,17 @@ $('compose-form').addEventListener('submit', async event => {
   if (content) properties.content = [content]; if ((kind === 'article' || kind === 'bookmark') && title) properties.name = [title];
   if (kind === 'bookmark' && $('description').value.trim()) properties.summary = [$('description').value.trim()];
   const targetProperty = {bookmark:'bookmark-of', reply:'in-reply-to', like:'like-of', repost:'repost-of'}[kind]; if (targetProperty && target) properties[targetProperty] = [target];
+  if (kind === 'highlight') {
+    // The source is a citation, so the title and the author travel with the
+    // URL: the site shows "From <title> by <author>" above the passage.
+    const sourceTitle = $('source-title').value.trim(), sourceAuthor = $('source-author').value.trim(), note = $('note').value.trim();
+    const cite = {type:['h-cite'], properties:{}};
+    if (target) cite.properties.url = [target];
+    if (sourceTitle || target) cite.properties.name = [sourceTitle || target];
+    if (sourceAuthor) cite.properties.author = [sourceAuthor];
+    if (target || sourceTitle || sourceAuthor) properties['read-of'] = [cite];
+    if (note) properties.note = [note];
+  }
   const categories = $('categories').value.split(',').map(x => x.trim()).filter(Boolean); if (categories.length) properties.category = categories;
   if ($('visibility').value && visibilityUnsupported) { notice('Your server reports that visibility is unsupported. Choose Server default or check the server before publishing.', true); return; }
   if ($('visibility').value) properties.visibility = [$('visibility').value];
@@ -320,6 +342,6 @@ $('compose-form').addEventListener('submit', async event => {
   if (!content && !title && !targetProperty && !photos.length) { notice('Add some content before publishing.', true); return; }
   const submittedDraft = JSON.stringify(draft());
   $('publish').disabled = true;
-  try { const response = await message({type:'publish', properties}); const url = response.url || response.location; notice(response.status === 202 || response.accepted ? 'Accepted by your server; processing may still be pending.' : 'Your server accepted the post.', false, url); if (JSON.stringify(draft()) === submittedDraft) { loadDraft(); saveDraft(); } } catch (error) { notice(`${error.message} Your draft is preserved. If the result is uncertain, check your site before retrying to avoid a duplicate.`, true); } finally { $('publish').disabled = false; }
+  try { const response = await message({type:'publish', properties, h:kind === 'highlight' ? 'highlight' : ''}); const url = response.url || response.location; notice(response.status === 202 || response.accepted ? 'Accepted by your server; processing may still be pending.' : 'Your server accepted the post.', false, url); if (JSON.stringify(draft()) === submittedDraft) { loadDraft(); saveDraft(); } } catch (error) { notice(`${error.message} Your draft is preserved. If the result is uncertain, check your site before retrying to avoid a duplicate.`, true); } finally { $('publish').disabled = false; }
 });
 initialize();

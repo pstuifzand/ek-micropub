@@ -149,10 +149,13 @@
     const response = await request(session.micropub, session, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
     return {status:response.status};
   }
-  async function publish(session, properties) {
+  async function publish(session, properties, h) {
     if (!properties || typeof properties !== 'object' || Array.isArray(properties)) throw new Error('Properties must be an object');
     const content = {...properties};
-    const body = {type:['h-entry'], properties:content};
+    // A post is an h-entry; a highlight says so too, because the server picks
+    // the post type from the named types rather than from the properties.
+    const declared = h === 'highlight' ? ['h-entry', 'h-highlight'] : ['h-entry'];
+    const body = {type:declared, properties:content};
     for (const key of ['mp-destination', 'mp-syndicate-to']) {
       if (Object.prototype.hasOwnProperty.call(content, key)) {
         body[key] = content[key];

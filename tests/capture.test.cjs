@@ -59,18 +59,23 @@ for (const promiseStyle of [false,true]) {
   });
   test(`${promiseStyle?'Firefox promises':'Chromium callbacks'}: menus, capture, conflicts and action`, async()=>{
     const e=setup(promiseStyle); e.installed.fire(); e.startup.fire(); await settle();
-    assert.equal(e.menus.size,9);
+    assert.equal(e.menus.size,10);
     assert.deepEqual(Array.from([...e.menus.values()].find(x=>x.id==='ek-capture-quote-selection').contexts),['selection']);
+    assert.deepEqual(Array.from([...e.menus.values()].find(x=>x.id==='ek-capture-highlight-selection').contexts),['selection']);
     e.clicked.fire({menuItemId:'ek-capture-quote-selection',pageUrl:'https://example.test/page',selectionText:'Selected text'},{title:'Page title'}); await settle();
     assert.equal(JSON.stringify(e.storage.pendingCapture),JSON.stringify({kind:'quote',target:'https://example.test/page',content:'> Selected text',title:'Page title'}));
-    assert.equal(e.tabs[0].url,'extension://id/src/popup.html?capture=1');
+    delete e.storage.pendingCapture;
+    // A highlight keeps the passage verbatim: the site does the quoting.
+    e.clicked.fire({menuItemId:'ek-capture-highlight-selection',pageUrl:'https://example.test/page',selectionText:'Selected\ntext'},{title:'Page title'}); await settle();
+    assert.equal(JSON.stringify(e.storage.pendingCapture),JSON.stringify({kind:'highlight',target:'https://example.test/page',content:'Selected\ntext',title:'Page title'}));
+    assert.equal(e.tabs[1].url,'extension://id/src/popup.html?capture=1');
     assert.equal(e.storage.micropubPopupDraft.content,'existing');
     e.clicked.fire({menuItemId:'ek-capture-bookmark-link',linkUrl:'https://other.test/',pageUrl:'https://page.test/'},{title:'Page'}); await settle();
-    assert.equal(e.storage.pendingCapture.kind,'quote');
-    assert.equal(e.tabs[1].url,'extension://id/src/popup.html?capture=1&captureConflict=1');
+    assert.equal(e.storage.pendingCapture.kind,'highlight');
+    assert.equal(e.tabs[2].url,'extension://id/src/popup.html?capture=1&captureConflict=1');
     delete e.storage.pendingCapture;
     e.clicked.fire({menuItemId:'ek-capture-like-image',srcUrl:'javascript:alert(1)',pageUrl:'https://page.test/'},{}); await settle();
-    assert.equal(e.tabs.length,2); assert.equal(e.storage.pendingCapture,undefined);
+    assert.equal(e.tabs.length,3); assert.equal(e.storage.pendingCapture,undefined);
     e.clicked.fire({menuItemId:'ek-capture-like-image',srcUrl:'http://image.test/a',pageUrl:'https://page.test/'},{}); await settle();
     assert.equal(e.storage.pendingCapture.target,'http://image.test/a'); assert.equal(e.storage.pendingCapture.kind,'like');
     assert.ok(e.reads.every(key=>Array.isArray(key) && key.includes('pendingCapture') && key.includes('stagedCapture')));

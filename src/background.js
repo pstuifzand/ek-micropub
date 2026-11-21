@@ -22,7 +22,7 @@ async function handleMessage(message) {
       case 'undelete': return {ok:true, ...await auth.action(await auth.getSession(), 'undelete', message.url)};
       case 'diagnostics': return {ok:true, ...await auth.diagnostics()};
       case 'diagnostic-config': return {ok:true, config:await auth.diagnosticConfig()};
-      case 'publish': return {ok:true, ...await auth.publish(await auth.getSession(), message.properties)};
+      case 'publish': return {ok:true, ...await auth.publish(await auth.getSession(), message.properties, message.h)};
       case 'upload': return {ok:true, ...await auth.upload(await auth.getSession(), message.dataUrl, message.filename, message.mimeType)};
       default: return {ok:false, error:'Unknown message type'};
     }

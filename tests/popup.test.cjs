@@ -12,7 +12,7 @@ function setup() {
     async fire(name, event = {}) { for (const fn of this.listeners[name] || []) await fn({preventDefault(){}, ...event}); }
     append(...children) { this.children.push(...children); }
     replaceChildren(...children) { this.children = children; this.options = this.children; }
-    reset() { for (const id of ['kind','title','target','content','categories','status','visibility','description','destination']) get(id).value = ''; }
+    reset() { for (const id of ['kind','title','target','content','categories','status','visibility','description','note','source-title','source-author','destination']) get(id).value = ''; }
   }
   const get = id => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id); };
   get('destination').append(new Element('option'));
@@ -69,8 +69,8 @@ test('destinations support multiple choices, legacy drafts and server default', 
 });
 test('server post types filter supported kinds and preserve names', () => {
   const {run,get} = setup();
-  run(`configure({config:{'post-types':[{type:'note',name:'Short note'},{type:'article',name:'Essay'},{type:'unknown',name:'Other'}]}},{kind:'article'})`);
-  assert.deepEqual(get('kind').children.map(x=>[x.value,x.textContent]), [['note','Short note'],['article','Essay']]);
+  run(`configure({config:{'post-types':[{type:'note',name:'Short note'},{type:'article',name:'Essay'},{type:'highlight',name:'Highlight'},{type:'unknown',name:'Other'}]}},{kind:'article'})`);
+  assert.deepEqual(get('kind').children.map(x=>[x.value,x.textContent]), [['note','Short note'],['article','Essay'],['highlight','Highlight']]);
   assert.equal(get('kind').value,'article');
 });
 test('legacy photos and alt text survive persistence; failed publish retains draft', async () => {
@@ -122,6 +122,30 @@ test('replace URL uses inline confirmation, cancellation and stale-draft protect
   get('target').value='https://old.example/'; await get('use-page').fire('click'); get('target').value='https://changed.example/'; await get('confirm-target').fire('click'); assert.equal(get('target').value,'https://changed.example/');
   get('target').value='https://old.example/'; await get('use-page').fire('click'); run("activeDraft = 'Other'"); await get('confirm-target').fire('click'); assert.equal(get('target').value,'https://old.example/');
   await get('use-page').fire('click'); await get('replace-target-prompt').fire('keydown',{key:'Escape'}); assert.equal(get('replace-target-prompt').hidden,true); assert.equal(get('target').value,'https://old.example/');
+});
+test('highlight capture keeps the passage verbatim and publishes a citation', async () => {
+  const {get,calls,run} = setup();
+  run("$('kind').replaceChildren(Object.assign(document.createElement('option'),{value:'highlight'}))");
+  run(`pendingCapture={kind:'highlight',target:'https://page.example/read',content:'A passage\\nkept whole.',title:'The Page'}`);
+  await get('apply-capture').fire('click');
+  assert.equal(get('kind').value,'highlight');
+  assert.equal(get('content').value,'A passage\nkept whole.');
+  assert.equal(get('target').value,'https://page.example/read');
+  assert.equal(get('source-title').value,'The Page');
+  assert.equal(get('source-field').hidden,false);
+  assert.equal(get('note-field').hidden,false);
+  get('note').value='Why it matters.';
+  get('source-author').value='A. Writer';
+  await get('compose-form').fire('submit');
+  const message = calls.filter(x=>x.type==='publish').at(-1);
+  const props = message.properties;
+  assert.deepEqual(Array.from(props.content),['A passage\nkept whole.']);
+  assert.deepEqual(Array.from(props.note),['Why it matters.']);
+  assert.deepEqual(Array.from(props['read-of'][0].properties.url),['https://page.example/read']);
+  assert.deepEqual(Array.from(props['read-of'][0].properties.name),['The Page']);
+  assert.deepEqual(Array.from(props['read-of'][0].properties.author),['A. Writer']);
+  assert.equal(props['in-reply-to'],undefined);
+  assert.equal(message.h,'highlight');
 });
 test('edit button checks current URL against source before opening', async () => {
   const {get,browser,calls} = setup(); let opened='';

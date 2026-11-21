@@ -112,6 +112,11 @@ test('publish moves Micropub controls to top level only when supplied',async()=>
   assert.deepEqual(body.properties,{content:['hello']}); assert.equal(body['mp-destination'],'https://site.example/'); assert.deepEqual(body['mp-syndicate-to'],['target']);
   await env.send({type:'publish',properties:{content:['hello']}}); body=JSON.parse(env.requests.at(-1).options.body);
   assert.equal('mp-destination' in body,false); assert.equal('mp-syndicate-to' in body,false);
+  assert.deepEqual(body.type,['h-entry']);
+  await env.send({type:'publish',properties:{content:['passage'],'read-of':[{type:['h-cite'],properties:{url:['https://page.example/']}}]},h:'highlight'});
+  body=JSON.parse(env.requests.at(-1).options.body);
+  assert.deepEqual(body.type,['h-entry','h-highlight']);
+  assert.equal(body.properties.content[0],'passage');
 });
 test('permissions are requested by caller before login or upload',async()=>{
   const env=setup(); const granted=new Set(); env.browser.permissions={async contains({origins}){return granted.has(origins[0]);}};

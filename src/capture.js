@@ -12,6 +12,7 @@
     ['reply-link', 'Reply to link', ['link'], 'reply', 'link'],
     ['like-link', 'Like link', ['link'], 'like', 'link'],
     ['quote-selection', 'Quote selection', ['selection'], 'quote', 'selection'],
+    ['highlight-selection', 'Highlight selection', ['selection'], 'highlight', 'selection'],
     ['bookmark-image', 'Bookmark image', ['image'], 'bookmark', 'image'],
     ['like-image', 'Like image', ['image'], 'like', 'image']
   ];
@@ -58,7 +59,12 @@
       const [, , , kind, source] = definition;
       const target = safeUrl(source === 'link' ? info.linkUrl : source === 'image' ? info.srcUrl : info.pageUrl);
       if (!target) return;
-      const pendingCapture = {kind, target, content:source === 'selection' && typeof info.selectionText === 'string' ? info.selectionText.split(/\r?\n/).map(line => `> ${line}`).join('\n') : '', title:kind === 'bookmark' && source !== 'page' ? '' : (typeof tab?.title === 'string' ? tab.title : '')};
+      // A quote is prose and gets the blockquote marks; a highlight is a
+      // passage kept verbatim, and the site does the quoting.
+      const marked = source === 'selection' && typeof info.selectionText === 'string'
+        ? (kind === 'highlight' ? info.selectionText : info.selectionText.split(/\r?\n/).map(line => `> ${line}`).join('\n'))
+        : '';
+      const pendingCapture = {kind, target, content:marked, title:kind === 'bookmark' && source !== 'page' ? '' : (typeof tab?.title === 'string' ? tab.title : '')};
       const existing = await call(api.storage.local, 'get', ['pendingCapture', 'stagedCapture']);
       // Never silently replace a capture the composer has not consumed.
       if (existing?.pendingCapture || existing?.stagedCapture) {
