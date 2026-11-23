@@ -1,0 +1,63 @@
+name: Build extensions
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - run: npm test
+      - run: npm run build
+      - name: Check release version
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          test "$TAG" = "v$VERSION"
+          node -e "for (const browser of ['firefox', 'chromium']) if (require('./dist/' + browser + '/manifest.json').version !== process.argv[1]) process.exit(1)" "$VERSION"
+      - name: Package extensions
+        run: |
+          (cd dist/firefox && zip -X -qr ../ek-micropub-firefox-unsigned.xpi manifest.json src)
+          (cd dist/chromium && zip -X -qr ../ek-micropub-chromium.zip manifest.json src)
+          cd dist
+          sha256sum ek-micropub-firefox-unsigned.xpi ek-micropub-chromium.zip > SHA256SUMS
+      - name: Attest packages
+        if: github.event_name == 'push'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: |
+            dist/ek-micropub-firefox-unsigned.xpi
+            dist/ek-micropub-chromium.zip
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: extensions-${{ github.sha }}
+          path: |
+            dist/ek-micropub-firefox-unsigned.xpi
+            dist/ek-micropub-chromium.zip
+            dist/SHA256SUMS
+          if-no-files-found: error
+      - name: Publish tagged release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" --verify-tag --generate-notes dist/ek-micropub-firefox-unsigned.xpi dist/ek-micropub-chromium.zip dist/SHA256SUMS

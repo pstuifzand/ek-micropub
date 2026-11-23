@@ -11,6 +11,14 @@ Run `npm test` and `npm run build` with Node.js 20 or newer. The build produces 
 
 Temporary and unpacked builds are for development; a successful load does not prove authentication or publishing works. Firefox temporary-install behavior can differ from a signed installation.[3]
 
+## Automated builds and releases
+
+GitHub Actions tests and packages both browsers on pushes to `master`, pull requests, and manual runs. Download the packages and checksums from the workflow run. Pushes also produce GitHub build attestations for the packages.
+
+To make a GitHub release, update the version in `package.json` and `scripts/build.mjs`, commit those changes, and push a matching tag such as `v0.1.0`. The workflow checks both generated manifest versions against the tag before publishing. It attaches an unsigned Firefox XPI, a Chromium ZIP, and `SHA256SUMS` to the release.
+
+Verify each downloaded package's provenance with `gh attestation verify <package> -R pstuifzand/ek-micropub`; inspect the reported source revision and compare it to the intended release tag. An attestation proves the recorded build origin and artifact digest, not that the code is safe. The Firefox XPI is unsigned and requires Mozilla signing for permanent installation in standard Firefox; the Chromium ZIP is an unpacked extension package, not a signed Chrome Web Store release.
+
 Open **Diagnostics** from the popup for client setup and details about the signed-in site. The page is local to the extension; its site configuration can contain sensitive information, so review it before sharing.
 
 The composer supports notes, articles, bookmarks, replies, likes, reposts and highlights; a current-page link or selected text; categories; photo uploads; and server-advertised syndication and destinations. A highlight keeps the passage as the post and your note beside it, and cites the page it came from as an `h-cite` `read-of`. Fields left at “Server default” are omitted rather than forcing a client preference. Drafts are stored locally in the browser profile. Sign-out deletes the local token but does not revoke it at the issuer.
