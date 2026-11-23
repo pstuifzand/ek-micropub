@@ -23,7 +23,7 @@ async function initialize() {
     const data = await message('diagnostics');
     $('redirect').textContent = data.redirect || 'Unavailable';
     $('client-id').value = data.clientId || '';
-    if (!data.session) { $('session-status').textContent = 'Not signed in. Set your client ID here, then sign in from the extension popup.'; return; }
+    if (!data.session) { $('session-status').textContent = data.clientId ? 'Not signed in. Sign in from the extension popup.' : 'Not signed in. Set your client ID here, then sign in from the extension popup.'; return; }
     $('session-status').textContent = 'Connected. Endpoints and scopes not recorded by older sessions are shown as such; sign in again to record them.';
     for (const key of ['me', 'micropub', 'authorizationEndpoint', 'tokenEndpoint', 'indieauthMetadata', 'scope']) $(key).textContent = data.session[key] || 'Not recorded';
     $('session').hidden = false; $('config-section').hidden = false;
@@ -40,6 +40,14 @@ $('client-form').addEventListener('submit', async event => {
     $('client-id').value = value;
     $('notice').textContent = 'Client ID saved. Sign in from the extension popup.';
   } catch (error) { $('notice').textContent = `Could not save client ID: ${error.message}`; }
+});
+$('reset-client-id').addEventListener('click', async () => {
+  try {
+    await call(api.storage.local, 'remove', 'clientId');
+    const data = await message('diagnostics');
+    $('client-id').value = data.clientId || '';
+    $('notice').textContent = data.clientId ? 'Browser default restored. Sign in again to use it.' : 'No default client ID is available for this browser.';
+  } catch (error) { $('notice').textContent = `Could not reset client ID: ${error.message}`; }
 });
 $('refresh').addEventListener('click', loadConfig);
 initialize();

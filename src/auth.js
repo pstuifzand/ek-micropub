@@ -3,6 +3,7 @@
   'use strict';
   const api = root.browser || root.chrome;
   const isFirefox = !!root.browser;
+  const defaultClientId = isFirefox ? 'https://ek.p83.dev/client.json' : null;
   const call = (object, method, ...args) => isFirefox
     ? object[method](...args)
     : new Promise((resolve, reject) => object[method](...args, result => {
@@ -82,8 +83,8 @@
   async function login(me, suppliedClientId) {
     if (suppliedClientId) await call(api.storage.local, 'set', {clientId:secure(suppliedClientId)});
     const { clientId } = await storageGet();
-    if (!clientId) throw new Error('Set storage.local.clientId to your publicly hosted HTTPS IndieAuth client ID; it must register this extension redirect URI');
-    const client = secure(clientId);
+    if (!clientId && !defaultClientId) throw new Error('Set storage.local.clientId to your publicly hosted HTTPS IndieAuth client ID; it must register this extension redirect URI');
+    const client = secure(clientId || defaultClientId);
     const redirect = api.identity.getRedirectURL();
     const discovered = await discover(me);
     if (!discovered.authorization_endpoint || !discovered.token_endpoint || !discovered.micropub) throw new Error('Identity is missing required IndieAuth or Micropub endpoints');
@@ -184,7 +185,7 @@
     const {session, clientId} = await storageGet();
     const secret = typeof session?.accessToken === 'string' ? session.accessToken : '';
     const clean = value => typeof value === 'string' ? (secret ? value.split(secret).join('[redacted]') : value) : null;
-    const info = {clientId:clean(clientId), redirect:clean(api.identity.getRedirectURL()), session:null};
+    const info = {clientId:clean(clientId || defaultClientId), redirect:clean(api.identity.getRedirectURL()), session:null};
     if (session?.me && session?.micropub && secret) {
       info.session = {};
       for (const key of ['me', 'micropub', 'authorizationEndpoint', 'tokenEndpoint', 'indieauthMetadata', 'scope']) info.session[key] = clean(session[key]);

@@ -25,6 +25,12 @@ function setup() {
   vm.runInContext(code, context);
   return {context,get,calls,store,browser,run:code=>vm.runInContext(code,context)};
 }
+test('Firefox login proceeds without a stored client ID', async () => {
+  const {get,calls} = setup();
+  get('me').value = 'https://me.example/';
+  await get('login-form').fire('submit', {submitter:{disabled:false}});
+  assert.equal(calls.find(x=>x.type==='login').me, 'https://me.example/');
+});
 test('inline clear confirms, cancels and rejects changed drafts', async () => {
   const {get,run} = setup(); get('content').value = 'Keep me';
   await get('clear-draft').fire('click'); assert.equal(get('cancel-clear-draft').focused,true);

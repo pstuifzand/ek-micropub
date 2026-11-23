@@ -5,9 +5,10 @@
   <h1>Micropub diagnostics</h1>
   <p class="warning">URLs and configuration may contain sensitive information. Review them before sharing this page or a screenshot.</p>
   <section><h2>Client setup</h2>
-    <p>Register this redirect URL with your public HTTPS IndieAuth client ID before signing in.</p>
+    <p>Firefox uses the built-in client ID by default. If you use a custom client ID, register this redirect URL with it before signing in.</p>
     <dl><dt>Redirect URL</dt><dd id="redirect">Loading…</dd></dl>
     <form id="client-form"><label for="client-id">Client ID URL</label><div class="form-row"><input id="client-id" type="url" required placeholder="https://example.com/client"><button type="submit">Save client ID</button></div></form>
+    <button type="button" id="reset-client-id">Use browser default</button>
     <p id="notice" role="status"></p>
   </section>
   <section><h2>Signed-in site</h2><p id="session-status">Loading…</p>

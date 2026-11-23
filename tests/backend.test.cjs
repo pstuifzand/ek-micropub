@@ -75,9 +75,15 @@ test('diagnostics allowlist, old sessions, config and redaction', async()=>{
   assert.equal(result.session.authorizationEndpoint,null);
   assert.equal(result.session.scope,null);
 });
-test('client ID required and script markup ignored',async()=>{
+test('Firefox uses the default client ID and ignores script markup',async()=>{
   const env=setup(); delete env.storage.clientId;
-  assert.match((await env.send({type:'login',me:'https://me.example/'})).error,/clientId/);
+  let authorization;
+  env.browser.identity.launchWebAuthFlow=async ({url})=>{ authorization=new URL(url); return `https://extension.example/?state=${authorization.searchParams.get('state')}&code=abc`; };
+  assert.equal((await env.send({type:'diagnostics'})).clientId,'https://ek.p83.dev/client.json');
+  assert.equal((await env.send({type:'login',me:'https://me.example/'})).ok,true);
+  assert.equal(authorization.searchParams.get('client_id'),'https://ek.p83.dev/client.json');
+  assert.equal(env.requests.find(r=>r.url.endsWith('/token')).options.body.get('client_id'),'https://ek.p83.dev/client.json');
+  assert.equal(env.storage.clientId,undefined);
   const links=env.ctx.EkAuth.parseLinks('<script>"<link rel=micropub href=https://evil/>"</script><link rel="micropub" href="/good">','','https://me.example/');
   assert.equal(links.micropub,'https://me.example/good');
 });

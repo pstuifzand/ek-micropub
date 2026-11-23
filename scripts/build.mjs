@@ -1,13 +1,15 @@
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 
+const icons = Object.fromEntries([16, 32, 48, 96, 128].map(size => [size, `src/icons/icon-${size}.png`]));
 const common = {
   manifest_version: 3,
   name: 'Micropub',
   version: '0.1.0',
   description: 'Publish to your own site with Micropub.',
+  icons,
   permissions: ['storage', 'identity', 'activeTab', 'scripting', 'contextMenus'],
   optional_host_permissions: ['https://*/*'],
-  action: { default_title: 'Micropub', default_popup: 'src/popup.html' },
+  action: { default_title: 'Micropub', default_popup: 'src/popup.html', default_icon: icons },
 };
 
 for (const target of ['firefox', 'chromium']) {

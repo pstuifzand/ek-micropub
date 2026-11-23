@@ -120,7 +120,7 @@ function configure(result, saved) {
 async function initialize() {
   if (!api?.runtime) { show('login-view'); notice('Extension APIs are unavailable. Open this page from the installed extension.', true); return; }
   let saved = {};
-  try { if (api.storage?.local) { const values = await call(api.storage.local, 'get', [draftKey, 'clientId', 'micropubDrafts', 'micropubActiveDraft', 'pendingCapture', 'stagedCapture']); drafts = values.micropubDrafts || {}; activeDraft = values.micropubActiveDraft || 'Default'; saved = drafts[activeDraft] || values[draftKey] || {}; drafts[activeDraft] = saved; pendingCapture = values.pendingCapture || values.stagedCapture || null; if (values.pendingCapture) { await call(api.storage.local, 'set', {stagedCapture: values.pendingCapture}); await call(api.storage.local, 'remove', 'pendingCapture'); } renderDraftNames(); $('setup-note').hidden = !!values.clientId; } } catch (_) { /* composer still works without persistence */ }
+  try { if (api.storage?.local) { const values = await call(api.storage.local, 'get', [draftKey, 'clientId', 'micropubDrafts', 'micropubActiveDraft', 'pendingCapture', 'stagedCapture']); drafts = values.micropubDrafts || {}; activeDraft = values.micropubActiveDraft || 'Default'; saved = drafts[activeDraft] || values[draftKey] || {}; drafts[activeDraft] = saved; pendingCapture = values.pendingCapture || values.stagedCapture || null; if (values.pendingCapture) { await call(api.storage.local, 'set', {stagedCapture: values.pendingCapture}); await call(api.storage.local, 'remove', 'pendingCapture'); } renderDraftNames(); $('setup-note').hidden = !!values.clientId || !!globalThis.browser; } } catch (_) { /* composer still works without persistence */ }
   loadDraft(saved); if (pendingCapture) $('capture-prompt').hidden = false;
   if (new URLSearchParams(globalThis.location?.search || '').has('captureConflict')) notice('A previous capture is still waiting. Apply it before capturing another page.', true);
   try {
@@ -138,7 +138,7 @@ $('login-form').addEventListener('submit', async event => {
   event.preventDefault(); const button = event.submitter || $('login-form').querySelector('[type="submit"]'); button.disabled = true;
   try {
     const {clientId} = await call(api.storage.local, 'get', 'clientId');
-    if (!clientId) { $('setup-note').hidden = false; throw new Error('Set up the client ID in Diagnostics first.'); }
+    if (!clientId && !globalThis.browser) { $('setup-note').hidden = false; throw new Error('Set up the client ID in Diagnostics first.'); }
     const response = await message({type:'login', me:$('me').value.trim()});
     const data = response.session || response; $('identity').textContent = data.me || $('me').value.trim(); show('compose-view'); $('notice').hidden = true;
     try { configure(await message({type:'config'}), {}); } catch (_) { notice('Could not load site options. Publishing will use your server defaults.', true); }

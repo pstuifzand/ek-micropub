@@ -1,0 +1,8 @@
+{
+  "client_id": "https://ek.p83.dev/client.json",
+  "client_name": "Ek Micropub",
+  "client_uri": "https://ek.p83.dev/",
+  "redirect_uris": [
+    "https://0670dd98edc069a66de1f5c72384920645e00428.extensions.allizom.org/"
+  ]
+}
